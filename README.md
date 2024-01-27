@@ -14,7 +14,7 @@
 Documenta el proceso detalladamente.
 ```
 
-
+### Servidor VPN
 En primer lugar de todo en el servidor VPN deberemos activar el bit de forwarding, mejor si es de manera permanente.
 ``` bash
 root@debian:~# cat /etc/sysctl.conf | grep ip_forward
@@ -24,7 +24,7 @@ net.ipv4.ip_forward=1
 ![](imagenes/Pasted%20image%2020240127182659.png)
 
 Creamos nuestro directorio de trabajo copiando la configuracion de /usr/share/easy-rsa a nuestro directorio.
-Después iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
+Después iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa que es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
 Esta acción crea una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
 
 ![](imagenes/Pasted%20image%2020240127182849.png)
@@ -264,7 +264,9 @@ topology subnet           # Configura la topología de red como subnet.
 
 server 10.99.99.0 255.255.255.0   # Configura el servidor VPN para la red 10.99.99.0/24.
 ifconfig-pool-persist /var/log/openvpn/ipp.txt   # Asignaciones de direcciones IP persistentes.
+tls-server #Rol de servidor
 
+comp-lzo #Activar la compresión LZO
 push "route 192.168.2.0 255.255.255.0"   # Empuja la ruta hacia la subred 192.168.2.0/24 a los clientes VPN. Para permitir conexión remota con los clientes en esa red.
 
 keepalive 10 120          # Enviará paquetes de control para mantener activo.
@@ -278,7 +280,6 @@ status /var/log/openvpn/openvpn-status.log   # Ruta para el archivo de registro 
 
 verb 3                    # Nivel de verbosidad de los registros.
 explicit-exit-notify 1    # Notifica a los clientes cuando el servidor se apaga.
-
 ```
 
 Iniciamos el servidor y comprobamos que está activo con los siguientes comandos:
@@ -289,6 +290,7 @@ root@debian:/etc/openvpn/server# systemctl status openvpn-server@servidor
 ```
 ![](imagenes/Pasted%20image%2020240127203346.png)
 
+### Cliente VPN
 Desde el clienteVPN, deberemos tener instalado openvpn al igual que en el servidor, y ahora moveremos los archivos a su directorio y le cambiaremos el propietario.
 
 ```bash
@@ -328,7 +330,8 @@ Modificaremos la configuración para el cliente (he eliminado todas las lineas d
 
 ```bash
 root@cliente-vpn-alex:/etc/openvpn/client# cat cliente.conf 
-client                   # Configuración para un cliente OpenVPN.
+client
+tls-client               #Rol de cliente
 dev tun                  # Utiliza el dispositivo TUN para la interfaz de red virtual.
 proto udp                # Usa el protocolo UDP para la comunicación.
 
@@ -338,7 +341,7 @@ nobind                   # No se unirá a una dirección o puerto específico.
 
 persist-key              # Clave de cifrado entre conexiones persistente.
 persist-tun              # Interfaz de red virtual entre conexiones persistente.
-
+comp-lzo #Activar la compresión LZO
 ca /etc/openvpn/client/ca.crt         # Ruta del certificado de la autoridad de certificación (CA).
 cert /etc/openvpn/client/clientevpn.crt   # Ruta del certificado del cliente VPN.
 key /etc/openvpn/client/clientevpn.key   # Ruta de la clave privada del cliente VPN.
@@ -358,7 +361,7 @@ root@cliente-vpn-alex:/etc/openvpn/client# systemctl status openvpn-client@clien
 
 ![](imagenes/Pasted%20image%2020240127210006.png)
 
-
+### Cliente Interno
 Finalmente desde el cliente interno a la VPN estableceremos una ruta por defecto hacia la dirección IP del servidor VPN
 ```bash
 root@cliente-alex:~# ip route add default via 192.168.2.200
@@ -394,4 +397,216 @@ traceroute to 192.168.2.100 (192.168.2.100), 30 hops max, 60 byte packets
 
 - Realizamos una captura de Wireshark del trafico entre ClienteVPN-ServidorVPN y ServidorVPN-ClienteInterno, podemos ver que llega al Cliente interno a través de la dirección de la VPN.
 ![](imagenes/Pasted%20image%2020240127214017.png)
+
+## B) VPN sitio a sitio con OpenVPN y certificados x509
+
+Configura una conexión VPN sitio a sitio entre dos equipos del cloud:
+```
+• Cada equipo estará conectado a dos redes, una de ellas en común 
+
+• Para la autenticación de los extremos se usarán obligatoriamente certificados digitales, que se generarán utilizando openssl y se almacenarán en el directorio /etc/openvpn, junto con con los parámetros Diffie-Helman y el certificado de la propia Autoridad de Certificación. 
+
+• Se utilizarán direcciones de la red 10.99.99.0/24 para las direcciones virtuales de la VPN. 
+
+• Tras el establecimiento de la VPN, una máquina de cada red detrás de cada servidor VPN debe ser capaz de acceder a una máquina del otro extremo. 
+
+Documenta el proceso detalladamente.
+```
+
+# REPETIR 
+### Servidor VPN
+En primer lugar de todo en el servidor VPN deberemos activar el bit de forwarding, mejor si es de manera permanente.
+``` bash
+root@debian:~# cat /etc/sysctl.conf | grep ip_forward
+net.ipv4.ip_forward=1
+```
+
+Creamos la infraestructura de PKI como hemos hecho anteriormente.
+```bash
+root@servidor-vpn-alex:~# cp -r /usr/share/easy-rsa /etc/openvpn
+root@servidor-vpn-alex:~# cd /etc/openvpn/easy-rsa
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa init-pki
+* Notice:
+
+  init-pki complete; you may now create a CA or requests.
+
+  Your newly created PKI dir is:
+  * /etc/openvpn/easy-rsa/pki
+
+* Notice:
+  IMPORTANT: Easy-RSA 'vars' file has now been moved to your PKI above.
+```
+
+Generamos el certificado y la clave privada de la autoridad certificadora.
+```bash
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa build-ca
+* Notice:
+Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
+
+* Notice:
+Using SSL: openssl OpenSSL 3.0.11 19 Sep 2023 (Library: OpenSSL 3.0.11 19 Sep 2023)
+
+
+Enter New CA Key Passphrase: 
+Re-Enter New CA Key Passphrase: 
+Using configuration from /etc/openvpn/easy-rsa/pki/0b2f288c/temp.17805c38
+......+.+..+....+......+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*..+.........+.......+........+.+..+...+.+.........+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*....+.........+..+...+...+.......+......+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+............+..+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*.+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*......+.+...+...........+....+.....+.+.................+..........+..+.+..............+.+.....+......+......+...+.+......+.........+.........+.....+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Enter PEM pass phrase:
+Verifying - Enter PEM pass phrase:
+-----
+You are about to be asked to enter information that will be incorporated
+into your certificate request.
+What you are about to enter is what is called a Distinguished Name or a DN.
+There are quite a few fields but you can leave some blank
+For some fields there will be a default value,
+If you enter '.', the field will be left blank.
+-----
+Common Name (eg: your user, host, or server name) [Easy-RSA CA]:Alexvpn
+
+* Notice:
+
+CA creation complete and you may now import and sign cert requests.
+Your new CA certificate file for publishing is at:
+/etc/openvpn/easy-rsa/pki/ca.crt
+```
+
+Ahora generamos el certificado y la clave privada del servidor VPN
+```bash
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa build-server-full server nopass
+* Notice:
+Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
+
+* Notice:
+Using SSL: openssl OpenSSL 3.0.11 19 Sep 2023 (Library: OpenSSL 3.0.11 19 Sep 2023)
+
+....................+..........+...+......+............+..+......+.+.............+++++++++++++++++
+-----
+* Notice:
+
+Keypair and certificate request completed. Your files are:
+req: /etc/openvpn/easy-rsa/pki/reqs/server.req
+key: /etc/openvpn/easy-rsa/pki/private/server.key
+
+
+You are about to sign the following certificate.
+Please check over the details shown below for accuracy. Note that this request
+has not been cryptographically verified. Please be sure it came from a trusted
+source or that you have verified the request checksum with the sender.
+
+Request subject, to be signed as a server certificate for 825 days:
+
+subject=
+    commonName                = server
+
+
+Type the word 'yes' to continue, or any other input to abort.
+  Confirm request details: yes
+
+Using configuration from /etc/openvpn/easy-rsa/pki/12f8771a/temp.6307258a
+Enter pass phrase for /etc/openvpn/easy-rsa/pki/private/ca.key:
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+commonName            :ASN.1 12:'server'
+Certificate is to be certified until May  1 22:41:10 2026 GMT (825 days)
+
+Write out database with 1 new entries
+Database updated
+
+* Notice:
+Certificate created at: /etc/openvpn/easy-rsa/pki/issued/server.crt
+```
+
+Generamos los parámetros de Diffie-Hellman.
+```bash
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa gen-dh
+* Notice:
+Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
+
+* Notice:
+Using SSL: openssl OpenSSL 3.0.11 19 Sep 2023 (Library: OpenSSL 3.0.11 19 Sep 2023)
+
+Generating DH parameters, 2048 bit long safe prime
+.................................................................................+*++*++*++*++*++*++*++*++*++*++*++*++*++*++*++*++*++*++*++*
+
+* Notice:
+
+DH parameters of size 2048 created at /etc/openvpn/easy-rsa/pki/dh.pem
+```
+
+Creamos el certificado y la clave privada del cliente VPN
+```bash
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa build-client-full clientevpn nopass
+* Notice:
+Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
+
+* Notice:
+Using SSL: openssl OpenSSL 3.0.11 19 Sep 2023 (Library: OpenSSL 3.0.11 19 Sep 2023)
+
+....+..+.+..+...+.......+..+..........+..+...............+.+..+.+..+.......++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-----
+* Notice:
+
+Keypair and certificate request completed. Your files are:
+req: /etc/openvpn/easy-rsa/pki/reqs/clientevpn.req
+key: /etc/openvpn/easy-rsa/pki/private/clientevpn.key
+
+
+You are about to sign the following certificate.
+Please check over the details shown below for accuracy. Note that this request
+has not been cryptographically verified. Please be sure it came from a trusted
+source or that you have verified the request checksum with the sender.
+
+Request subject, to be signed as a client certificate for 825 days:
+
+subject=
+    commonName                = clientevpn
+
+
+Type the word 'yes' to continue, or any other input to abort.
+  Confirm request details: yes
+
+Using configuration from /etc/openvpn/easy-rsa/pki/02743a30/temp.8b5c807b
+Enter pass phrase for /etc/openvpn/easy-rsa/pki/private/ca.key:
+Check that the request matches the signature
+Signature ok
+The Subject's Distinguished Name is as follows
+commonName            :ASN.1 12:'clientevpn'
+Certificate is to be certified until May  1 22:43:59 2026 GMT (825 days)
+
+Write out database with 1 new entries
+Database updated
+
+* Notice:
+Certificate created at: /etc/openvpn/easy-rsa/pki/issued/clientevpn.crt
+```
+
+Movemos los archivos necesarios para el cliente VPN a un directorio mas accesible y cambiamos propietario.
+```bash
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cp ca.crt /home/debian
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cp issued/clientevpn.crt /home/debian
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cp private/clientevpn.key /home/debian
+root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cd /home/debian
+root@servidor-vpn-alex:/home/debian# chown debian:debian *
+root@servidor-vpn-alex:/home/debian# ls -l
+total 16
+-rw------- 1 debian debian 1188 Jan 27 22:45 ca.crt
+-rw------- 1 debian debian 4481 Jan 27 22:45 clientevpn.crt
+-rw------- 1 debian debian 1704 Jan 27 22:45 clientevpn.key
+```
+
+Y se los enviaremos con scp.
+```bash
+root@servidor-vpn-alex:/home/debian# scp * debian@80.0.0.2:/home/debian
+The authenticity of host '80.0.0.2 (80.0.0.2)' can't be established.
+ED25519 key fingerprint is SHA256:zn2i5rAyilMi1i+Kqb6ys8GhldKuHKYZCDKbD1aXqjQ.
+This key is not known by any other names.
+Are you sure you want to continue connecting (yes/no/[fingerprint])? yes
+Warning: Permanently added '80.0.0.2' (ED25519) to the list of known hosts.
+debian@80.0.0.2's password: 
+ca.crt                                        100% 1188   556.9KB/s   00:00    
+clientevpn.crt                                100% 4481     1.9MB/s   00:00    
+clientevpn.key                                100% 1704     1.0MB/s   00:00 
+```
 
