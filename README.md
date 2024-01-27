@@ -21,11 +21,12 @@ root@debian:~# cat /etc/sysctl.conf | grep ip_forward
 net.ipv4.ip_forward=1
 ```
 
-
-Iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
-Esta acción crea una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
-
 ![](imagenes/Pasted%20image%2020240127182659.png)
+
+Creamos nuestro directorio de trabajo copiando la configuracion de /usr/share/easy-rsa a nuestro directorio.
+Después iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
+Esta acción crea una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
+![](imagenes/Pasted%20image%2020240127182849.png)
 
 Vamos a generar el certificado y clave de la autoridad certificadora.
 
@@ -238,12 +239,6 @@ total 16
 -rw------- 1 debian debian 4485 Jan 27 18:05 clientevpn.crt
 -rw------- 1 debian debian 1704 Jan 27 18:05 clientevpn.key
 ```
-
-
-```bash
-root@debian:/etc/openvpn# cp /usr/share/doc/openvpn/examples/sample-config-files/server.conf /etc/openvpn/server/servidor.conf
-```
-
 
 Para la configuración del servidor VPN copiaremos la plantilla de la siguiente ruta y la guardaremos en nuestro directorio de trabajo.
 ```bash
