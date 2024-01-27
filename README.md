@@ -401,3 +401,4 @@ traceroute to 192.168.2.100 (192.168.2.100), 30 hops max, 60 byte packets
 - Realizamos una captura de Wireshark del trafico entre ClienteVPN-ServidorVPN y ServidorVPN-ClienteInterno, podemos ver que llega al Cliente interno a través de la dirección de la VPN.
 ![[Pasted image 20240127214017.png]]
 
+![](imagenes/Pasted%20image%2020240127215418.png)
