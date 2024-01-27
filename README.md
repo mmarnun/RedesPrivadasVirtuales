@@ -26,6 +26,7 @@ net.ipv4.ip_forward=1
 Creamos nuestro directorio de trabajo copiando la configuracion de /usr/share/easy-rsa a nuestro directorio.
 Después iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
 Esta acción crea una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
+
 ![](imagenes/Pasted%20image%2020240127182849.png)
 
 Vamos a generar el certificado y clave de la autoridad certificadora.
