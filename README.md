@@ -64,7 +64,6 @@ Your new CA certificate file for publishing is at:
 Se ha generado un certificado y la clave privada para la autoridad certificadora.
 
 ![](imagenes/Pasted%20image%2020240127183224.png)
-![[Pasted image 20240127183247.png]]
 
 
 Ahora generamos el certificado del servidor VPN.
