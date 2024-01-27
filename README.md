@@ -25,7 +25,7 @@ net.ipv4.ip_forward=1
 Iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
 Esta acción crea una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
 
-![[imagenes/Pasted image 20240127182849.png]]
+![](imagenes/Pasted%20image%2020240127182659.png)
 
 Vamos a generar el certificado y clave de la autoridad certificadora.
 
@@ -63,7 +63,7 @@ Your new CA certificate file for publishing is at:
 
 Se ha generado un certificado y la clave privada para la autoridad certificadora.
 
-![[Pasted image 20240127183224.png]]
+![](imagenes/Pasted%20image%2020240127183224.png)
 ![[Pasted image 20240127183247.png]]
 
 
@@ -115,9 +115,8 @@ Certificate created at: /etc/openvpn/easy-rsa/pki/issued/server.crt
 ```
 
 Podemos ver que se ha generado el certificado y la clave privada del servidor VPN.
-![[Pasted image 20240127184624.png]]
+![](imagenes/Pasted%20image%2020240127184624.png)
 
-![[Pasted image 20240127184649.png]]
 
 Ahora generaremos los parámetros Diffie-Helman
 
@@ -138,7 +137,7 @@ DH parameters of size 2048 created at /etc/openvpn/easy-rsa/pki/dh.pem
 ```
 Se han generado los parámetros de Diffie-Hellman necesarios para establecer una comunicación segura y establecer una clave secreta compartida entre el servidor OpenVPN y los clientes VPN. 
 
-![[Pasted image 20240127185259.png]]
+![](imagenes/Pasted%20image%2020240127185259.png)
 
 Ahora generamos para el cliente VPN.
 ```bash
@@ -189,8 +188,8 @@ Certificate created at: /etc/openvpn/easy-rsa/pki/issued/clientevpn.crt
 
 Ya hemos generado el certificado y la clave privada para el cliente VPN.
 
-![[Pasted image 20240127185628.png]]
-![[Pasted image 20240127185659.png]]
+![](imagenes/Pasted%20image%2020240127185628.png)
+![](imagenes/Pasted%20image%2020240127185659.png)
 
 Ahora deberemos deberemos enviarle al cliente VPN el certificado, la clave privada y el certificado de la autoridad certificadora.
 
@@ -293,7 +292,7 @@ root@debian:/etc/openvpn/server# systemctl enable --now openvpn-server@servidor
 root@debian:/etc/openvpn/server# systemctl status openvpn-server@servidor
 
 ```
-![[Pasted image 20240127203346.png]]
+![](imagenes/Pasted%20image%2020240127203346.png)
 
 Desde el clienteVPN, deberemos tener instalado openvpn al igual que en el servidor, y ahora moveremos los archivos a su directorio y le cambiaremos el propietario.
 
@@ -362,7 +361,7 @@ root@cliente-vpn-alex:/etc/openvpn/client# systemctl enable --now openvpn-client
 root@cliente-vpn-alex:/etc/openvpn/client# systemctl status openvpn-client@cliente
 ```
 
-![[Pasted image 20240127210006.png]]
+![](imagenes/Pasted%20image%2020240127210006.png)
 
 
 Finalmente desde el cliente interno a la VPN estableceremos una ruta por defecto hacia la dirección IP del servidor VPN
@@ -399,6 +398,5 @@ traceroute to 192.168.2.100 (192.168.2.100), 30 hops max, 60 byte packets
 ```
 
 - Realizamos una captura de Wireshark del trafico entre ClienteVPN-ServidorVPN y ServidorVPN-ClienteInterno, podemos ver que llega al Cliente interno a través de la dirección de la VPN.
-![[Pasted image 20240127214017.png]]
+![](imagenes/Pasted%20image%2020240127214017.png)
 
-![](imagenes/Pasted%20image%2020240127215418.png)
