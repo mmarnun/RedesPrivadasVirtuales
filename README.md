@@ -25,7 +25,7 @@ net.ipv4.ip_forward=1
 Iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
 Esta acción crea una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
 
-![[Pasted image 20240127182849.png]]
+![[imagenes/Pasted image 20240127182849.png]]
 
 Vamos a generar el certificado y clave de la autoridad certificadora.
 
