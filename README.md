@@ -686,27 +686,24 @@ root@servidor-vpn1-alex:/etc/openvpn/server# cp /usr/share/doc/openvpn/examples/
 Al igual que en la del anterior servidor VPN hay algunos cambios.
 ```bash
 root@servidor-vpn1-alex:/etc/openvpn/server# cat servidor-vpn1.conf 
-client
 tls-client
 dev tun
-proto udp
 
 remote 80.0.0.1 1194 # Dirección del servidor VPN
 ifconfig 10.99.99.2 10.99.99.1 #Establece la dirección IP de los extremos del servidor VPN.
 route 192.168.2.0 255.255.255.0 # Ruta estática para enrutar el tráfico destinado a la subred 192.168.2.0/24 a través del túnel VPN.
 
-resolv-retry infinite
-nobind
 comp-lzo
-persist-key
-persist-tun
 
 ca /etc/openvpn/server/ca.crt
 cert /etc/openvpn/server/clientevpn.crt
 key /etc/openvpn/server/clientevpn.key
 
-remote-cert-tls server
+persist-key
+persist-tun
 cipher AES-256-CBC
+keepalive 10 120
+log /var/log/openvpn.log
 verb 3
 ```
 
