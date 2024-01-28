@@ -370,6 +370,7 @@ default via 192.168.2.200 dev ens4
 192.168.2.0/24 dev ens4 proto kernel scope link src 192.168.2.100 
 ```
 
+### Pruebas
 Ahora ya vamos a proceder a realizar pruebas para verificar el correcto funcionamiento de la VPN.
 
 - Realizamos un ping al cliente interno de VPN y llega con éxito!
@@ -413,19 +414,19 @@ Configura una conexión VPN sitio a sitio entre dos equipos del cloud:
 Documenta el proceso detalladamente.
 ```
 
-# REPETIR 
-### Servidor VPN
+
+### Servidor VPN 2
 En primer lugar de todo en el servidor VPN deberemos activar el bit de forwarding, mejor si es de manera permanente.
 ``` bash
-root@debian:~# cat /etc/sysctl.conf | grep ip_forward
+root@servidor-vpn2-alex:~# cat /etc/sysctl.conf | grep ip_forward
 net.ipv4.ip_forward=1
 ```
 
 Creamos la infraestructura de PKI como hemos hecho anteriormente.
 ```bash
-root@servidor-vpn-alex:~# cp -r /usr/share/easy-rsa /etc/openvpn
-root@servidor-vpn-alex:~# cd /etc/openvpn/easy-rsa
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa init-pki
+root@servidor-vpn2-alex:~# cp -r /usr/share/easy-rsa /etc/openvpn
+root@servidor-vpn2-alex:~# cd /etc/openvpn/easy-rsa
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa# ./easyrsa init-pki
 * Notice:
 
   init-pki complete; you may now create a CA or requests.
@@ -439,7 +440,7 @@ root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa init-pki
 
 Generamos el certificado y la clave privada de la autoridad certificadora.
 ```bash
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa build-ca
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa# ./easyrsa build-ca
 * Notice:
 Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
 
@@ -471,9 +472,9 @@ Your new CA certificate file for publishing is at:
 /etc/openvpn/easy-rsa/pki/ca.crt
 ```
 
-Ahora generamos el certificado y la clave privada del servidor VPN
+Ahora generamos el certificado y la clave privada del servidor VPN:
 ```bash
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa build-server-full server nopass
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa# ./easyrsa build-server-full server nopass
 * Notice:
 Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
 
@@ -520,7 +521,7 @@ Certificate created at: /etc/openvpn/easy-rsa/pki/issued/server.crt
 
 Generamos los parámetros de Diffie-Hellman.
 ```bash
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa gen-dh
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa# ./easyrsa gen-dh
 * Notice:
 Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
 
@@ -535,9 +536,9 @@ Generating DH parameters, 2048 bit long safe prime
 DH parameters of size 2048 created at /etc/openvpn/easy-rsa/pki/dh.pem
 ```
 
-Creamos el certificado y la clave privada del cliente VPN
+Creamos el certificado y la clave privada del cliente VPN:
 ```bash
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa# ./easyrsa build-client-full clientevpn nopass
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa# ./easyrsa build-client-full clientevpn nopass
 * Notice:
 Using Easy-RSA configuration from: /etc/openvpn/easy-rsa/pki/vars
 
@@ -584,12 +585,12 @@ Certificate created at: /etc/openvpn/easy-rsa/pki/issued/clientevpn.crt
 
 Movemos los archivos necesarios para el cliente VPN a un directorio mas accesible y cambiamos propietario.
 ```bash
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cp ca.crt /home/debian
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cp issued/clientevpn.crt /home/debian
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cp private/clientevpn.key /home/debian
-root@servidor-vpn-alex:/etc/openvpn/easy-rsa/pki# cd /home/debian
-root@servidor-vpn-alex:/home/debian# chown debian:debian *
-root@servidor-vpn-alex:/home/debian# ls -l
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa/pki# cp ca.crt /home/debian
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa/pki# cp issued/clientevpn.crt /home/debian
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa/pki# cp private/clientevpn.key /home/debian
+root@servidor-vpn2-alex:/etc/openvpn/easy-rsa/pki# cd /home/debian
+root@servidor-vpn2-alex:/home/debian# chown debian:debian *
+root@servidor-vpn2-alex:/home/debian# ls -l
 total 16
 -rw------- 1 debian debian 1188 Jan 27 22:45 ca.crt
 -rw------- 1 debian debian 4481 Jan 27 22:45 clientevpn.crt
@@ -598,7 +599,7 @@ total 16
 
 Y se los enviaremos con scp.
 ```bash
-root@servidor-vpn-alex:/home/debian# scp * debian@80.0.0.2:/home/debian
+root@servidor-vpn2-alex:/home/debian# scp * debian@80.0.0.2:/home/debian
 The authenticity of host '80.0.0.2 (80.0.0.2)' can't be established.
 ED25519 key fingerprint is SHA256:zn2i5rAyilMi1i+Kqb6ys8GhldKuHKYZCDKbD1aXqjQ.
 This key is not known by any other names.
@@ -610,3 +611,175 @@ clientevpn.crt                                100% 4481     1.9MB/s   00:00
 clientevpn.key                                100% 1704     1.0MB/s   00:00 
 ```
 
+Para la configuración copiaremos la plantilla.
+```bash
+root@servidor-vpn2-alex:~# cp /usr/share/doc/openvpn/examples/sample-config-files/server.conf /etc/openvpn/server/servidor-vpn2.conf
+```
+
+En la configuración podemos ver algunas pequeñas diferencias a las anteriores:
+```bash
+root@servidor-vpn2-alex:/etc/openvpn# cat server/servidor-vpn2.conf 
+port 1194
+proto udp
+dev tun
+
+
+ca /etc/openvpn/easy-rsa/pki/ca.crt
+cert /etc/openvpn/easy-rsa/pki/issued/server.crt
+key /etc/openvpn/easy-rsa/pki/private/server.key
+dh /etc/openvpn/easy-rsa/pki/dh.pem
+tls-server
+comp-lzo
+
+
+ifconfig 10.99.99.1 10.99.99.2 # Establece la dirección IP del extremo del servidor VPN como 10.99.99.1 y la dirección IP del extremo del cliente como 10.99.99.2.
+route 192.168.1.0 255.255.255.0 # Ruta estática para enrutar el tráfico destinado a la subred 192.168.1.0/24 a través del túnel VPN.
+
+keepalive 10 120
+cipher AES-256-CBC
+persist-key
+persist-tun
+status /var/log/openvpn/openvpn-status.log
+verb 3
+explicit-exit-notify 1
+```
+
+Una vez configurado activamos el servicio y comprobamos que esté activo y funcionando.
+```bash
+root@servidor-vpn2-alex:/etc/openvpn# systemctl enable --now openvpn-server@servidor-vpn2
+root@servidor-vpn2-alex:/etc/openvpn# systemctl status openvpn-server@servidor-vpn2
+```
+
+### Servidor VPN  1
+Esta máquina actuará como cliente VPN realmente para la configuración, pero como estamos configurándolo para que sea sitio a sitio, también le hemos llamado servidor VPN.
+
+Al igual que el anterior debemos activar el bit de forwarding.
+```bash
+root@servidor-vpn1-alex:~# cat /etc/sysctl.conf | grep ip_forward
+net.ipv4.ip_forward=1
+```
+
+Antes desde el servidor VPN 2 nos habíamos enviado mediante scp, los archivos necesarios para el cliente.
+Entonces los moveremos a su directorio correspondiente y le cambiaremos el propietario a root.
+```bash
+root@servidor-vpn1-alex:/home/debian# ls -l
+total 16
+-rw------- 1 debian debian 1188 Jan 27 22:46 ca.crt
+-rw------- 1 debian debian 4481 Jan 27 22:46 clientevpn.crt
+-rw------- 1 debian debian 1704 Jan 27 22:46 clientevpn.key
+root@servidor-vpn1-alex:/home/debian# mv * /etc/openvpn/server
+root@servidor-vpn1-alex:/home/debian# cd /etc/openvpn/server/
+root@servidor-vpn1-alex:/etc/openvpn/server# chown root:root *
+root@servidor-vpn1-alex:/etc/openvpn/server# ls -l
+total 16
+-rw------- 1 root root 1188 Jan 27 22:46 ca.crt
+-rw------- 1 root root 4481 Jan 27 22:46 clientevpn.crt
+-rw------- 1 root root 1704 Jan 27 22:46 clientevpn.key
+```
+
+
+Pasaremos ahora a la configuración.
+```bash
+root@servidor-vpn1-alex:/etc/openvpn/server# cp /usr/share/doc/openvpn/examples/sample-config-files/client.conf servidor-vpn1.conf
+```
+
+Al igual que en la del anterior servidor VPN hay algunos cambios.
+```bash
+root@servidor-vpn1-alex:/etc/openvpn/server# cat servidor-vpn1.conf 
+client
+tls-client
+dev tun
+proto udp
+
+remote 80.0.0.1 1194 # Dirección del servidor VPN
+ifconfig 10.99.99.2 10.99.99.1 #Establece la dirección IP de los extremos del servidor VPN.
+route 192.168.2.0 255.255.255.0 # Ruta estática para enrutar el tráfico destinado a la subred 192.168.2.0/24 a través del túnel VPN.
+
+resolv-retry infinite
+nobind
+comp-lzo
+persist-key
+persist-tun
+
+ca /etc/openvpn/server/ca.crt
+cert /etc/openvpn/server/clientevpn.crt
+key /etc/openvpn/server/clientevpn.key
+
+remote-cert-tls server
+cipher AES-256-CBC
+verb 3
+```
+
+Una vez configurado activamos el servicio y comprobamos que esté activo y funcionando.
+```bash
+root@servidor-vpn1-alex:/etc/openvpn/server# systemctl enable --now openvpn-server@servidor-vpn1
+root@servidor-vpn1-alex:/etc/openvpn/server# systemctl status openvpn-server@servidor-vpn1
+```
+
+
+### Cliente Interno 2
+En ambos clientes deberemos de establecer una ruta por defecto hacia el servidor VPN.
+```bash
+debian@cliente-int2-alex:~$ sudo ip route add default via 192.168.2.200
+debian@cliente-int2-alex:~$ ip r
+default via 192.168.2.200 dev ens4 
+192.168.2.0/24 dev ens4 proto kernel scope link src 192.168.2.100 
+```
+### Cliente Interno 1
+```bash
+debian@cliente-int1-alex:~$ sudo ip route add default via 192.168.1.200
+debian@cliente-int1-alex:~$ ip r
+default via 192.168.1.200 dev ens4 
+192.168.1.0/24 dev ens4 proto kernel scope link src 192.168.1
+```
+### Pruebas
+Ahora ya vamos a proceder a realizar pruebas para verificar el correcto funcionamiento de la VPN.
+
+- Ping desde el Cliente Interno 1 hacia el Cliente Interno 2
+```bash
+debian@cliente-int1-alex:~$ ping 192.168.2.100
+PING 192.168.2.100 (192.168.2.100) 56(84) bytes of data.
+64 bytes from 192.168.2.100: icmp_seq=1 ttl=62 time=5.43 ms
+64 bytes from 192.168.2.100: icmp_seq=2 ttl=62 time=5.56 ms
+64 bytes from 192.168.2.100: icmp_seq=3 ttl=62 time=5.97 ms
+64 bytes from 192.168.2.100: icmp_seq=4 ttl=62 time=2.24 ms
+^C
+--- 192.168.2.100 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3005ms
+rtt min/avg/max/mdev = 2.242/4.801/5.974/1.491 ms
+```
+
+- Ping desde el Cliente Interno 2 hacia el Cliente Interno 1
+```bash
+debian@cliente-int2-alex:~$ ping 192.168.1.100
+PING 192.168.1.100 (192.168.1.100) 56(84) bytes of data.
+64 bytes from 192.168.1.100: icmp_seq=1 ttl=62 time=5.39 ms
+64 bytes from 192.168.1.100: icmp_seq=2 ttl=62 time=5.39 ms
+64 bytes from 192.168.1.100: icmp_seq=3 ttl=62 time=6.32 ms
+64 bytes from 192.168.1.100: icmp_seq=4 ttl=62 time=5.95 ms
+^C
+--- 192.168.1.100 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3006ms
+rtt min/avg/max/mdev = 5.388/5.761/6.315/0.392 ms
+```
+
+- Realizaremos traceroute desde el Cliente Interno 1 hacia el Cliente Interno 2
+```bash
+debian@cliente-int1-alex:~$ traceroute 192.168.2.100
+traceroute to 192.168.2.100 (192.168.2.100), 30 hops max, 60 byte packets
+ 1  192.168.1.200 (192.168.1.200)  2.757 ms  2.714 ms  2.692 ms
+ 2  10.99.99.1 (10.99.99.1)  3.003 ms  2.995 ms  2.989 ms
+ 3  192.168.2.100 (192.168.2.100)  5.131 ms  5.110 ms  5.089 ms
+```
+
+- Realizaremos traceroute desde el Cliente Interno 2 hacia el Cliente Interno 1
+```
+debian@cliente-int2-alex:~$ traceroute 192.168.1.100
+traceroute to 192.168.1.100 (192.168.1.100), 30 hops max, 60 byte packets
+ 1  192.168.2.200 (192.168.2.200)  1.383 ms  1.320 ms  1.246 ms
+ 2  10.99.99.2 (10.99.99.2)  7.508 ms  7.336 ms  7.213 ms
+ 3  192.168.1.100 (192.168.1.100)  7.065 ms  6.961 ms  6.874 ms
+```
+
+- Realizamos una captura de Wireshark del trafico que pasa entre los servidores VPN al realizar ping al Cliente Interno 2 cuando realizamos un ping desde el Cliente Interno 1, podemos ver que los paquetes viajan por la red de "Internet" simulado mediante el protocolo de OpenVPN
+![](imagenes/Pasted%20image%2020240128115448.png)
