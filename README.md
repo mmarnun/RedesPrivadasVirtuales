@@ -15,6 +15,11 @@ Documenta el proceso detalladamente.
 ```
 
 ### Servidor VPN
+Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
+```bash
+sudo apt install openvpn
+```
+
 En primer lugar de todo en el servidor VPN deberemos activar el bit de forwarding, mejor si es de manera permanente.
 ``` bash
 root@debian:~# cat /etc/sysctl.conf | grep ip_forward
@@ -416,6 +421,11 @@ Documenta el proceso detalladamente.
 
 
 ### Servidor VPN 2
+Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
+```bash
+sudo apt install openvpn
+```
+
 En primer lugar de todo en el servidor VPN deberemos activar el bit de forwarding, mejor si es de manera permanente.
 ``` bash
 root@servidor-vpn2-alex:~# cat /etc/sysctl.conf | grep ip_forward
@@ -780,3 +790,293 @@ traceroute to 192.168.1.100 (192.168.1.100), 30 hops max, 60 byte packets
 
 - Realizamos una captura de Wireshark del trafico que pasa entre los servidores VPN al realizar ping al Cliente Interno 2 cuando realizamos un ping desde el Cliente Interno 1, podemos ver que los paquetes viajan por la red de "Internet" simulado mediante el protocolo de OpenVPN
 ![](imagenes/Pasted%20image%2020240128115448.png)
+
+
+## C) VPN de acceso remoto con WireGuard
+
+Monta una VPN de acceso remoto usando Wireguard. Intenta probarla con clientes Windows, Linux y Android. Documenta el proceso adecuadamente y compáralo con el del apartado A.
+
+### Servidor VPN
+Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
+```bash
+sudo apt install wireguard
+```
+
+Activaremos el bit de forwarding.
+```bash
+root@servidor-vpn-alex:~# sysctl -p
+net.ipv4.ip_forward = 1
+```
+
+Vamos a generar las claves publica y privada con este comando generaremos un par de claves para WireGuard y las guardará en una ruta concreta. 
+```bash
+root@servidor-vpn-alex:/etc/wireguard# wg genkey | sudo tee /etc/wireguard/server_private.key | wg pubkey | sudo tee /etc/wireguard/server_public.key
+
+root@servidor-vpn-alex:/etc/wireguard# cat server_public.key 
+OknH5XPIshiFUBLzylPdD5xyuXA4mCi9uWUz2rmSoyo=
+
+root@servidor-vpn-alex:/etc/wireguard# cat server_private.key 
+GIGe2xa9X6p8Xr9EwBu/COTrzMNkZLBX0DpjtCk2+Vs=
+```
+
+Ahora crearemos un fichero de configuración donde incluimos ya la clave publica del cliente que explico como la generamos más adelante:
+```bash
+root@servidor-vpn-alex:/etc/wireguard# cat wg0.conf 
+[Interface]
+Address = 10.99.99.1/24 # Direccion IP y mascara de la red virtual
+ListenPort = 51820 # Puerto donde WireGuard escuchará las conexiones
+PrivateKey = GIGe2xa9X6p8Xr9EwBu/COTrzMNkZLBX0DpjtCk2+Vs=
+PreUp = sysctl -w net.ipv4.ip_forward=1 # Activara el bir de forwarding
+
+# Clave publica del cliente linux
+[Peer]
+PublicKey = M0jW9c33zYn3flZItu6lClZ098GQuaYrmhveLkMrZwA=
+AllowedIPs = 10.99.99.2/32 	# Direcciones IP permitidas
+Endpoint = 192.168.1.200:51820 # Extremo del tunel
+```
+
+Le cambiaremos los permisos por solo lectura.
+```bash
+root@servidor-vpn-alex:/etc/wireguard# chmod 600 . -R
+root@servidor-vpn-alex:/etc/wireguard# ls -l
+total 12
+-rw------- 1 root root  45 Jan 28 18:10 server_private.key
+-rw------- 1 root root  45 Jan 28 18:10 server_public.key
+-rw------- 1 root root 400 Jan 28 18:49 wg0.conf
+```
+
+Activaremos la configuración con el siguiente comando y ha configurado una interfaz WireGuard según el archivo configurado.
+```bash
+root@servidor-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg0.conf 
+[#] sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+[#] ip link add wg0 type wireguard
+[ 3269.035432] wireguard: WireGuard 1.0.0 loaded. See www.wireguard.com for information.
+[ 3269.036939] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+[#] wg setconf wg0 /dev/fd/63
+[#] ip -4 address add 10.99.99.1/24 dev wg0
+[#] ip link set mtu 1420 up dev wg0
+```
+
+En caso de ser necesaria después de incluir la clave publica sino lo hubiéramos hecho "reiniciamos" con los siguientes comandos:
+```bash
+root@servidor-vpn-alex:/etc/wireguard# wg-quick down /etc/wireguard/wg0.conf 
+[#] ip link delete dev wg0
+root@servidor-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg0.conf 
+[#] sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+[#] ip link add wg0 type wireguard
+[#] wg setconf wg0 /dev/fd/63
+[#] ip -4 address add 10.99.99.1/24 dev wg0
+[#] ip link set mtu 1420 up dev wg0
+```
+
+Podemos ver que se ha creado la interfaz correctamente:
+```
+root@servidor-vpn-alex:/etc/wireguard# ip a
+...
+4: wg0: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/none 
+    inet 10.99.99.1/24 scope global wg0
+       valid_lft forever preferred_lft foreve
+```
+
+Y asimismo la ruta
+```
+root@servidor-vpn-alex:/etc/wireguard# ip r
+10.99.99.0/24 dev wg0 proto kernel scope link src 10.99.99.1 
+```
+### Cliente VPN Linux
+También debemos tener instalado WireGuard por supuesto.
+Crearemos al igual que en el servidor un par de claves de WireGuard y las almacenaremos en /etc/wireguard.
+```bash
+root@cliente-vpn-alex:~# wg genkey | sudo tee /etc/wireguard/client_private.key | wg pubkey | sudo tee /etc/wireguard/client_public.key
+
+root@cliente-vpn-alex:/etc/wireguard# cat client_private.key 
+aN5jy3M8rt+DteffYHgqa6RwmLtujsNb7UlA/0PS9nQ=
+
+root@cliente-vpn-alex:/etc/wireguard# cat client_public.key 
+M0jW9c33zYn3flZItu6lClZ098GQuaYrmhveLkMrZwA=
+```
+
+Crearemos un archivo de configuración:
+```bash
+root@cliente-vpn-alex:/etc/wireguard# cat wg-client0.conf 
+[Interface]
+Address = 10.99.99.2/24 # Direccion IP y mascara de la red virtual
+PrivateKey = aN5jy3M8rt+DteffYHgqa6RwmLtujsNb7UlA/0PS9nQ=
+
+[Peer]
+PublicKey = OknH5XPIshiFUBLzylPdD5xyuXA4mCi9uWUz2rmSoyo=
+AllowedIPs = 10.99.99.1/32, 192.168.2.0/24 # Todas las direcciones IP son permitidas al tunel.
+Endpoint = 192.168.1.100:51820 # Direccion IP y puerto del servidor WireGuard al que se conectara
+PersistentKeepalive = 25 # Intervalo de tiempo en segundos para los paquetes keepalive para la inactividad.
+```
+
+Le cambiamos los permisos pues son ficheros delicados.
+```
+root@cliente-vpn-alex:/etc/wireguard# chmod 600 . -R
+root@cliente-vpn-alex:/etc/wireguard# ls -l
+total 12
+-rw------- 1 root root  45 Jan 28 18:57 client_private.key
+-rw------- 1 root root  45 Jan 28 18:57 client_public.key
+-rw------- 1 root root 483 Jan 28 19:16 wg-client0.conf
+```
+
+Y activaremos la configuración con el siguiente comando:
+```bash
+root@cliente-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg-client0.conf 
+[#] ip link add wg-client0 type wireguard
+[ 4796.196799] wireguard: WireGuard 1.0.0 loaded. See www.wireguard.com for information.
+[ 4796.198083] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+[#] wg setconf wg-client0 /dev/fd/63
+[#] ip -4 address add 10.99.99.2/24 dev wg-client0
+[#] ip link set mtu 1420 up dev wg-client0
+```
+
+En caso de necesitar reiniciarlo al introducirle la clave pública del servidor reiniciaremos con estos comandos:
+```bash
+root@cliente-vpn-alex:/etc/wireguard# wg-quick down /etc/wireguard/wg-client0.conf
+[#] ip -4 rule delete table 51820
+[#] ip -4 rule delete table main suppress_prefixlength 0
+[#] ip link delete dev wg-client0
+[#] iptables-restore -n
+root@cliente-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg-client0.conf[#] ip link add wg-client0 type wireguard
+[#] wg setconf wg-client0 /dev/fd/63
+[#] ip -4 address add 10.99.99.2/24 dev wg-client0
+[#] ip link set mtu 65456 up dev wg-client0
+[#] wg set wg-client0 fwmark 51820
+[#] ip -4 route add 0.0.0.0/0 dev wg-client0 table 51820
+[#] ip -4 rule add not fwmark 51820 table 51820
+[#] ip -4 rule add table main suppress_prefixlength 0
+[#] sysctl -q net.ipv4.conf.all.src_valid_mark=1
+[#] iptables-restore -n
+```
+
+Podemos ver que ha creado la interfaz de WireGuard:
+```bash
+root@cliente-vpn-alex:/etc/wireguard# ip a
+...
+3: wg-client0: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/none 
+    inet 10.99.99.2/24 scope global wg-client0
+       valid_lft forever preferred_lft forever
+```
+
+Asimismo la ruta:
+```bash
+root@cliente-vpn-alex:/etc/wireguard# ip r
+10.99.99.0/24 dev wg-client0 proto kernel scope link src 10.99.99.2 
+```
+
+Aunque debemos agregarle una por defecto hacia la dirección IP de la VPN:
+```bash
+debian@cliente-vpn-alex:~$ sudo ip route add default via 10.99.99.1
+debian@cliente-vpn-alex:~$ ip r
+default via 10.99.99.1 dev wg-client0 
+10.99.99.0/24 dev wg-client0 proto kernel scope link src 10.99.99.2 
+```
+
+### Cliente Interno
+Al cliente interno le estableceremos la ruta por defecto hacia el servidor VPN.
+```bash
+debian@cliente-int-alex:~$ sudo ip route add default via 192.168.2.100
+debian@cliente-int-alex:~$ ip r
+default via 192.168.2.100 dev ens4 
+```
+
+### Pruebas
+
+- Ping desde el cliente VPN hacia el cliente Interno.
+```bash
+debian@cliente-vpn-alex:~$ ping 192.168.2.200
+PING 192.168.2.200 (192.168.2.200) 56(84) bytes of data.
+64 bytes from 192.168.2.200: icmp_seq=1 ttl=63 time=3.85 ms
+64 bytes from 192.168.2.200: icmp_seq=2 ttl=63 time=1.51 ms
+64 bytes from 192.168.2.200: icmp_seq=3 ttl=63 time=2.05 ms
+64 bytes from 192.168.2.200: icmp_seq=4 ttl=63 time=2.49 ms
+^C
+--- 192.168.2.200 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3004ms
+rtt min/avg/max/mdev = 1.514/2.476/3.852/0.865 ms
+```
+
+- Traceroute desde el cliente VPN hacia el cliente Interno.
+```bash 
+debian@cliente-vpn-alex:~$ traceroute 192.168.2.200
+traceroute to 192.168.2.200 (192.168.2.200), 30 hops max, 60 byte packets
+ 1  10.99.99.1 (10.99.99.1)  1.576 ms  1.498 ms  1.473 ms
+ 2  192.168.2.200 (192.168.2.200)  2.380 ms  2.287 ms  2.168 ms
+```
+
+- Realizamos el ping capturando el trafico entre el servidor VPN y el cliente interno y podemos ver que llegan los paquetes desde la dirección IP del túnel.
+
+![](imagenes/Pasted%20image%2020240129005352.png)
+
+### Cliente VPN Windows
+En primer lugar le colocaremos una dirección IP estática con el siguiente comando:
+```c
+netsh interface ipv4 set address name="Instancia de Ethernet 0 2" static 192.168.1.210 255.255.255.0 192.168.1.100
+```
+
+![](imagenes/Pasted%20image%2020240129011725.png)
+
+A continuación en el cliente VPN de Windows instalaremos WireGuard desde www.wireguard.com/install debemos descargar la versión para Windows, y lo ejecutaremos.
+
+Al ejecutarlo se nos abre una ventana donde nos dirigiremos a añadir un nuevo túnel vacío.
+
+![](imagenes/Pasted%20image%2020240128222451.png)
+
+Una vez le hagamos click se nos abre otra nueva ventana y veremos que ya ha creado el par de claves pública y privada.
+
+![](imagenes/Pasted%20image%2020240128222530.png)
+
+
+Generamos la configuración como cliente y guardamos.
+
+![](imagenes/Pasted%20image%2020240129010407.png)
+
+### Servidor VPN
+
+```
+root@servidor-vpn-alex:/etc/wireguard# cat wg0.conf 
+[Interface]
+Address = 10.99.99.1/24 # Direccion IP y mascara de la red virtual
+ListenPort = 51820 # Puerto donde WireGuard escuchará las conexiones
+PrivateKey = GIGe2xa9X6p8Xr9EwBu/COTrzMNkZLBX0DpjtCk2+Vs=
+PreUp = sysctl -w net.ipv4.ip_forward=1 # Activara el bir de forwarding
+
+# Clave publica del cliente linux
+[Peer]
+PublicKey = M0jW9c33zYn3flZItu6lClZ098GQuaYrmhveLkMrZwA=
+AllowedIPs = 10.99.99.2/32 	# Direcciones IP permitidas
+Endpoint = 192.168.1.200:51820
+
+# Clave publica del cliente windows
+[Peer]
+PublicKey = IqV7jyvSg5oWs+0DPsfp92RiDYQ0oA9SY4WB6BRcuSU=
+AllowedIPs = 10.99.99.3/32
+Endpoint = 192.168.1.210:51820
+```
+
+Y reiniciamos la interfaz:
+```
+root@servidor-vpn-alex:/etc/wireguard# wg-quick down /etc/wireguard/wg0.conf
+[#] ip link delete dev wg0
+root@servidor-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg0.conf
+[#] ip link add wg0 type wireguard
+[#] wg setconf wg0 /dev/fd/63
+[#] ip -4 address add 10.99.99.1/24 dev wg0
+[#] ip link set mtu 1420 up dev wg0
+```
+
+
+### Cliente VPN Windows
+De nuevo desde el Cliente VPN de Windows activaremos el túnel que hemos creado.
+
+![](imagenes/Pasted%20image%2020240128225420.png)
+
+
+Podemos ver que también nos ha creado la interfaz del túnel.
+![](imagenes/Pasted%20image%2020240129011813.png)
+
