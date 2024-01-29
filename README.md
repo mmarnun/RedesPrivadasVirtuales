@@ -985,7 +985,7 @@ debian@cliente-int-alex:~$ ip r
 default via 192.168.2.100 dev ens4 
 ```
 
-### Pruebas
+### Pruebas Cliente VPN en Linux
 
 - Ping desde el cliente VPN hacia el cliente Interno.
 ```bash
@@ -1034,7 +1034,7 @@ Una vez le hagamos click se nos abre otra nueva ventana y veremos que ya ha crea
 
 Generamos la configuración como cliente y guardamos.
 
-![](imagenes/Pasted%20image%2020240129010407.png)
+![](imagenes/Pasted%20image%2020240129014743.png)
 
 ### Servidor VPN
 
@@ -1074,9 +1074,21 @@ root@servidor-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg0.conf
 ### Cliente VPN Windows
 De nuevo desde el Cliente VPN de Windows activaremos el túnel que hemos creado.
 
-![](imagenes/Pasted%20image%2020240128225420.png)
+![](imagenes/Pasted%20image%2020240129014817.png)
 
 
 Podemos ver que también nos ha creado la interfaz del túnel.
-![](imagenes/Pasted%20image%2020240129011813.png)
+![](imagenes/Pasted%20image%2020240129014841.png)
 
+
+### Pruebas Cliente VPN en Windows
+
+- Ping desde el cliente VPN de Windows.
+![](imagenes/Pasted%20image%2020240129014921.png)
+
+
+- Tracert desde el cliente VPN de Windows.
+![](imagenes/Pasted%20image%2020240129015035.png)
+
+- Captura de wireshark de paquetes ICMP que llegan al cliente interno desde la dirección IP del túnel.
+![](imagenes/Pasted%20image%2020240129015214.png)
