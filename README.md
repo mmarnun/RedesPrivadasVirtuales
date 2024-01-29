@@ -941,7 +941,8 @@ root@cliente-vpn-alex:/etc/wireguard# wg-quick down /etc/wireguard/wg-client0.co
 [#] ip -4 rule delete table main suppress_prefixlength 0
 [#] ip link delete dev wg-client0
 [#] iptables-restore -n
-root@cliente-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg-client0.conf[#] ip link add wg-client0 type wireguard
+root@cliente-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg-client0.conf
+[#] ip link add wg-client0 type wireguard
 [#] wg setconf wg-client0 /dev/fd/63
 [#] ip -4 address add 10.99.99.2/24 dev wg-client0
 [#] ip link set mtu 65456 up dev wg-client0
@@ -1092,3 +1093,211 @@ Podemos ver que también nos ha creado la interfaz del túnel.
 
 - Captura de wireshark de paquetes ICMP que llegan al cliente interno desde la dirección IP del túnel.
 ![](imagenes/Pasted%20image%2020240129015214.png)
+
+
+### Cliente VPN Android
+
+Para nuestro cliente VPN en Android deberemos tener instalado WireGuard.
+
+![](imagenes/Pasted%20image%2020240129171049.png)
+
+Primero de todo debemos conectarlo a la red e introducirle una dirección IP estática.
+
+![](imagenes/Pasted%20image%2020240129171024.png)
+
+![](imagenes/Pasted%20image%2020240129173401.png)
+
+
+
+
+![](imagenes/Pasted%20image%2020240129195203.png)
+
+![](imagenes/Pasted%20image%2020240129195432.png)
+NO VA
+
+## D) VPN sitio a sitio con WireGuard
+
+Configura una VPN sitio a sitio usando WireGuard. Documenta el proceso adecuadamente y compáralo con el del apartado B.
+
+### Servidor VPN 1
+
+Generamos el par de claves en el primer servidor.
+```bash
+root@servidor-vpn1-alex:/etc/wireguard# wg genkey | sudo tee /etc/wireguard/server1_private.key | wg pubkey | sudo tee /etc/wireguard/server1_public.key
+
+root@servidor-vpn1-alex:/etc/wireguard# cat server1_public.key 
+PMa+TEHKBYRRqJKy5csKwxfT9ODpZ2g8ljxESGl2D1I=
+
+root@servidor-vpn1-alex:/etc/wireguard# cat server1_private.key 
+8K22lfO0n0SuPpRVaP8Bj0kU4IwwJBiSHmUG6wiQq1k=
+```
+
+Creamos la configuración adecuada al escenario, usando la clave pública del servidor VPN 2.
+```bash
+root@servidor-vpn1-alex:/etc/wireguard# cat wg0.conf 
+[Interface]
+Address = 10.99.99.1/32
+ListenPort = 51820
+PrivateKey = 8K22lfO0n0SuPpRVaP8Bj0kU4IwwJBiSHmUG6wiQq1k=
+PreUp = sysctl -w net.ipv4.ip_forward=1
+
+[Peer]
+Endpoint = 80.0.0.20:51820
+AllowedIPs = 10.99.99.2/32, 192.168.2.0/24
+PublicKey = ObevoCRkNg5jNs2ShcZZpYeRiC+xvoMYlhEmi1Xu13o=
+```
+
+Cambiaremos los permisos.
+```bash
+root@servidor-vpn1-alex:/etc/wireguard# chmod 600 . -R
+root@servidor-vpn1-alex:/etc/wireguard# ls -l
+total 12
+-rw------- 1 root root  45 Jan 29 19:51 server1_private.key
+-rw------- 1 root root  45 Jan 29 19:51 server1_public.key
+-rw------- 1 root root 292 Jan 29 19:55 wg0.conf
+```
+
+Y levantaremos el túnel.
+```bash
+root@servidor-vpn1-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg0.conf
+[#] sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+[#] ip link add wg0 type wireguard
+[  371.183776] wireguard: WireGuard 1.0.0 loaded. See www.wireguard.com for information.
+[  371.185119] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+[#] wg setconf wg0 /dev/fd/63
+[#] ip -4 address add 10.99.99.1/32 dev wg0
+[#] ip link set mtu 65456 up dev wg0
+[#] ip -4 route add 10.99.99.2/32 dev wg0
+[#] ip -4 route add 192.168.2.0/24 dev wg0
+```
+
+Como vemos se ha creado la interfaz y la ruta.
+```bash
+root@servidor-vpn1-alex:/etc/wireguard# ip a
+4: wg0: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 65456 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/none 
+    inet 10.99.99.1/32 scope global wg0
+       valid_lft forever preferred_lft forever
+
+root@servidor-vpn1-alex:/etc/wireguard# ip r
+10.99.99.2 dev wg0 scope link
+```
+### Servidor VPN 2
+
+En el servidor de VPN 2 seguiremos los mismos pasos, primero generamos las claves.
+```bash
+root@servidor-vpn2-alex:/etc/wireguard# wg genkey | sudo tee /etc/wireguard/server2_private.key | wg pubkey | sudo tee /etc/wireguard/server2_public.key
+
+root@servidor-vpn2-alex:/etc/wireguard# cat server2_public.key 
+ObevoCRkNg5jNs2ShcZZpYeRiC+xvoMYlhEmi1Xu13o=
+
+root@servidor-vpn2-alex:/etc/wireguard# cat server2_private.key 
+gA919n7yJ5iZixzBpGt5ud6LEfuDx+Vqba2H8mqFXHA=
+```
+
+Configuración:
+```bash
+root@servidor-vpn2-alex:/etc/wireguard# cat wg0.conf 
+[Interface]
+Address = 10.99.99.2/32
+ListenPort = 51820
+PrivateKey = gA919n7yJ5iZixzBpGt5ud6LEfuDx+Vqba2H8mqFXHA=
+PreUp = sysctl -w net.ipv4.ip_forward=1
+
+[Peer]
+Endpoint = 80.0.0.10:51820
+AllowedIPs = 10.99.99.1/32, 192.168.1.0/24
+PublicKey = PMa+TEHKBYRRqJKy5csKwxfT9ODpZ2g8ljxESGl2D1I=
+```
+
+Cambiamos los permisos.
+```bash
+root@servidor-vpn2-alex:/etc/wireguard# chmod 600 . -R
+root@servidor-vpn2-alex:/etc/wireguard# ls -l
+total 12
+-rw------- 1 root root  45 Jan 29 19:54 server2_private.key
+-rw------- 1 root root  45 Jan 29 19:54 server2_public.key
+-rw------- 1 root root 288 Jan 29 19:59 wg0.conf
+```
+
+Y se crea el túnel y la ruta.
+```bash
+root@servidor-vpn2-alex:/etc/wireguard# ip a
+4: wg0: <POINTOPOINT,NOARP,UP,LOWER_UP> mtu 1420 qdisc noqueue state UNKNOWN group default qlen 1000
+    link/none 
+    inet 10.99.99.2/32 scope global wg0
+       valid_lft forever preferred_lft forever
+
+root@servidor-vpn2-alex:/etc/wireguard# ip r
+10.99.99.1 dev wg0 scope link
+```
+
+### Cliente Interno 1
+
+La ruta por defecto del cliente interno 1 es el servidor vpn 1.
+```bash
+debian@cliente-int1-alex:~$ ip r
+default via 192.168.1.100 dev ens4 onlink 
+```
+
+### Cliente Interno 2
+
+La ruta por defecto del cliente interno 2 es el servidor vpn 2.
+```bash
+debian@cliente-int2-alex:~$ ip r
+default via 192.168.2.100 dev ens4 onlink 
+```
+
+
+### Pruebas
+
+- Ping desde el cliente interno 1 hacia el cliente interno 2
+```bash
+debian@cliente-int1-alex:~$ ping 192.168.2.200
+PING 192.168.2.200 (192.168.2.200) 56(84) bytes of data.
+64 bytes from 192.168.2.200: icmp_seq=1 ttl=62 time=14.1 ms
+64 bytes from 192.168.2.200: icmp_seq=2 ttl=62 time=5.78 ms
+64 bytes from 192.168.2.200: icmp_seq=3 ttl=62 time=5.76 ms
+64 bytes from 192.168.2.200: icmp_seq=4 ttl=62 time=5.61 ms
+^C
+--- 192.168.2.200 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3006ms
+rtt min/avg/max/mdev = 5.614/7.818/14.124/3.641 ms
+```
+
+- Ping desde el cliente interno 2 hacia el cliente interno 1
+```bash
+debian@cliente-int2-alex:~$ ping 192.168.1.200
+PING 192.168.1.200 (192.168.1.200) 56(84) bytes of data.
+64 bytes from 192.168.1.200: icmp_seq=1 ttl=62 time=0.978 ms
+64 bytes from 192.168.1.200: icmp_seq=2 ttl=62 time=5.73 ms
+64 bytes from 192.168.1.200: icmp_seq=3 ttl=62 time=5.52 ms
+64 bytes from 192.168.1.200: icmp_seq=4 ttl=62 time=5.47 ms
+^C
+--- 192.168.1.200 ping statistics ---
+4 packets transmitted, 4 received, 0% packet loss, time 3005ms
+rtt min/avg/max/mdev = 0.978/4.425/5.731/1.992 ms
+```
+
+- Traceroute desde el cliente interno 1 hacia el cliente interno 2
+```bash
+debian@cliente-int1-alex:~$ traceroute 192.168.2.200
+traceroute to 192.168.2.200 (192.168.2.200), 30 hops max, 60 byte packets
+ 1  192.168.1.100 (192.168.1.100)  1.620 ms  1.373 ms  1.227 ms
+ 2  10.99.99.2 (10.99.99.2)  3.611 ms  3.545 ms  3.434 ms
+ 3  192.168.2.200 (192.168.2.200)  6.917 ms  6.772 ms  6.659 ms
+```
+
+- Traceroute desde el cliente interno 2 hacia el cliente interno 1
+```bash
+debian@cliente-int2-alex:~$ traceroute 192.168.1.200
+traceroute to 192.168.1.200 (192.168.1.200), 30 hops max, 60 byte packets
+ 1  192.168.2.100 (192.168.2.100)  1.409 ms  1.478 ms  1.493 ms
+ 2  10.99.99.1 (10.99.99.1)  7.173 ms  7.122 ms  6.969 ms
+ 3  192.168.1.200 (192.168.1.200)  6.845 ms  6.763 ms  6.646 ms
+```
+
+- Captura con wireshark entre los servidores VPN mientras se realiza un ping desde el cliente inerno 1 hacia el cliente interno 2, podemos ver que los paquetes viajan con WireGuard por la red que simula "Internet".
+
+![](imagenes/Pasted%20image%2020240129210618.png)
