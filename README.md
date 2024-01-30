@@ -14,7 +14,7 @@
 Documenta el proceso detalladamente.
 ```
 
-### Servidor VPN
+#### Servidor VPN
 Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
 ```bash
 sudo apt install openvpn
@@ -28,14 +28,14 @@ net.ipv4.ip_forward=1
 
 ![](imagenes/Pasted%20image%2020240127182659.png)
 
-Creamos nuestro directorio de trabajo copiando la configuracion de /usr/share/easy-rsa a nuestro directorio.
+Creamos nuestro directorio de trabajo copiando la configuración de ```/usr/share/easy-rsa``` a nuestro directorio.
 Después iniciaremos el PKI (Infrastructure de Clave Pública) de OpenVPN utilizando el comando init-pki en el directorio de easy-rsa que es el primer paso para establecer una infraestructura de clave pública para OpenVPN.
-Esta acción crea una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
+
+Esto nos creará una estructura de directorios y archivos necesarios para la gestión de certificados y claves dentro de nuestro servidor de OpenVPN.
 
 ![](imagenes/Pasted%20image%2020240127182849.png)
 
 Vamos a generar el certificado y clave de la autoridad certificadora.
-
 ``` bash
 root@debian:/etc/openvpn/easy-rsa# ./easyrsa build-ca
 * Notice:
@@ -121,11 +121,11 @@ Certificate created at: /etc/openvpn/easy-rsa/pki/issued/server.crt
 ```
 
 Podemos ver que se ha generado el certificado y la clave privada del servidor VPN.
+
 ![](imagenes/Pasted%20image%2020240127184624.png)
 
 
-Ahora generaremos los parámetros Diffie-Helman
-
+Ahora generaremos los parámetros Diffie-Helman.
 ```bash
 root@debian:/etc/openvpn/easy-rsa# ./easyrsa gen-dh
 * Notice:
@@ -141,6 +141,7 @@ Generating DH parameters, 2048 bit long safe prime
 
 DH parameters of size 2048 created at /etc/openvpn/easy-rsa/pki/dh.pem
 ```
+
 Se han generado los parámetros de Diffie-Hellman necesarios para establecer una comunicación segura y establecer una clave secreta compartida entre el servidor OpenVPN y los clientes VPN. 
 
 ![](imagenes/Pasted%20image%2020240127185259.png)
@@ -200,7 +201,6 @@ Ya hemos generado el certificado y la clave privada para el cliente VPN.
 Ahora deberemos deberemos enviarle al cliente VPN el certificado, la clave privada y el certificado de la autoridad certificadora.
 
 En primer lugar copiaremos los archivos necesarios al directorio home del usuario.
-
 ```bash
 root@debian:/etc/openvpn/easy-rsa/pki# cp ca.crt /home/debian
 root@debian:/etc/openvpn/easy-rsa/pki# cp issued/clientevpn.crt /home/debian
@@ -253,7 +253,6 @@ root@debian:/etc/openvpn# cp /usr/share/doc/openvpn/examples/sample-config-files
 
 En el fichero de configuración indicaremos donde se encuentran, la autoridad certificadora, el certificado del servidor, la clave privada y los parámetros de Diffie-Hellman.
 Aquí vemos como queda, he eliminado todas las lineas de comentarios informativos.
-
 ```bash
 root@debian:/etc/openvpn/server# cat servidor.conf 
 port 1194                 # Escucha en el puerto UDP 1194 para conexiones de clientes VPN.
@@ -291,12 +290,12 @@ Iniciamos el servidor y comprobamos que está activo con los siguientes comandos
 ```bash
 root@debian:/etc/openvpn/server# systemctl enable --now openvpn-server@servidor
 root@debian:/etc/openvpn/server# systemctl status openvpn-server@servidor
-
 ```
+
 ![](imagenes/Pasted%20image%2020240127203346.png)
 
-### Cliente VPN
-Desde el clienteVPN, deberemos tener instalado openvpn al igual que en el servidor, y ahora moveremos los archivos a su directorio y le cambiaremos el propietario.
+#### Cliente VPN
+Desde el clienteVPN, deberemos tener instalado OpenVPN al igual que en el servidor, y ahora moveremos los archivos a su directorio y le cambiaremos el propietario.
 
 ```bash
 root@cliente-vpn-alex:/home/debian# ls -l
@@ -332,7 +331,6 @@ total 20
 
 
 Modificaremos la configuración para el cliente (he eliminado todas las lineas de comentarios): 
-
 ```bash
 root@cliente-vpn-alex:/etc/openvpn/client# cat cliente.conf 
 client
@@ -358,7 +356,6 @@ verb 3                   # Nivel de verbosidad de los registros.
 
 
 Entonces activamos el servicio del cliente y comprobamos que se encuentre activo:
-
 ```bash
 root@cliente-vpn-alex:/etc/openvpn/client# systemctl enable --now openvpn-client@cliente
 root@cliente-vpn-alex:/etc/openvpn/client# systemctl status openvpn-client@cliente
@@ -366,7 +363,7 @@ root@cliente-vpn-alex:/etc/openvpn/client# systemctl status openvpn-client@clien
 
 ![](imagenes/Pasted%20image%2020240127210006.png)
 
-### Cliente Interno
+#### Cliente Interno
 Finalmente desde el cliente interno a la VPN estableceremos una ruta por defecto hacia la dirección IP del servidor VPN
 ```bash
 root@cliente-alex:~# ip route add default via 192.168.2.200
@@ -375,7 +372,7 @@ default via 192.168.2.200 dev ens4
 192.168.2.0/24 dev ens4 proto kernel scope link src 192.168.2.100 
 ```
 
-### Pruebas
+#### Pruebas
 Ahora ya vamos a proceder a realizar pruebas para verificar el correcto funcionamiento de la VPN.
 
 - Realizamos un ping al cliente interno de VPN y llega con éxito!
@@ -420,7 +417,7 @@ Documenta el proceso detalladamente.
 ```
 
 
-### Servidor VPN 2
+#### Servidor VPN 2
 Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
 ```bash
 sudo apt install openvpn
@@ -660,7 +657,7 @@ root@servidor-vpn2-alex:/etc/openvpn# systemctl enable --now openvpn-server@serv
 root@servidor-vpn2-alex:/etc/openvpn# systemctl status openvpn-server@servidor-vpn2
 ```
 
-### Servidor VPN  1
+#### Servidor VPN  1
 Esta máquina actuará como cliente VPN realmente para la configuración, pero como estamos configurándolo para que sea sitio a sitio, también le hemos llamado servidor VPN.
 
 Al igual que el anterior debemos activar el bit de forwarding.
@@ -723,8 +720,7 @@ root@servidor-vpn1-alex:/etc/openvpn/server# systemctl enable --now openvpn-serv
 root@servidor-vpn1-alex:/etc/openvpn/server# systemctl status openvpn-server@servidor-vpn1
 ```
 
-
-### Cliente Interno 2
+#### Cliente Interno 2
 En ambos clientes deberemos de establecer una ruta por defecto hacia el servidor VPN.
 ```bash
 debian@cliente-int2-alex:~$ sudo ip route add default via 192.168.2.200
@@ -732,14 +728,14 @@ debian@cliente-int2-alex:~$ ip r
 default via 192.168.2.200 dev ens4 
 192.168.2.0/24 dev ens4 proto kernel scope link src 192.168.2.100 
 ```
-### Cliente Interno 1
+#### Cliente Interno 1
 ```bash
 debian@cliente-int1-alex:~$ sudo ip route add default via 192.168.1.200
 debian@cliente-int1-alex:~$ ip r
 default via 192.168.1.200 dev ens4 
 192.168.1.0/24 dev ens4 proto kernel scope link src 192.168.1
 ```
-### Pruebas
+#### Pruebas
 Ahora ya vamos a proceder a realizar pruebas para verificar el correcto funcionamiento de la VPN.
 
 - Ping desde el Cliente Interno 1 hacia el Cliente Interno 2
@@ -796,7 +792,8 @@ traceroute to 192.168.1.100 (192.168.1.100), 30 hops max, 60 byte packets
 
 Monta una VPN de acceso remoto usando Wireguard. Intenta probarla con clientes Windows, Linux y Android. Documenta el proceso adecuadamente y compáralo con el del apartado A.
 
-### Servidor VPN
+### Cliente Linux
+#### Servidor VPN
 Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
 ```bash
 sudo apt install wireguard
@@ -886,7 +883,7 @@ Y asimismo la ruta
 root@servidor-vpn-alex:/etc/wireguard# ip r
 10.99.99.0/24 dev wg0 proto kernel scope link src 10.99.99.1 
 ```
-### Cliente VPN Linux
+#### Cliente VPN Linux
 También debemos tener instalado WireGuard por supuesto.
 Crearemos al igual que en el servidor un par de claves de WireGuard y las almacenaremos en /etc/wireguard.
 ```bash
@@ -978,7 +975,7 @@ default via 10.99.99.1 dev wg-client0
 10.99.99.0/24 dev wg-client0 proto kernel scope link src 10.99.99.2 
 ```
 
-### Cliente Interno
+#### Cliente Interno
 Al cliente interno le estableceremos la ruta por defecto hacia el servidor VPN.
 ```bash
 debian@cliente-int-alex:~$ sudo ip route add default via 192.168.2.100
@@ -986,7 +983,7 @@ debian@cliente-int-alex:~$ ip r
 default via 192.168.2.100 dev ens4 
 ```
 
-### Pruebas Cliente VPN en Linux
+#### Pruebas Cliente VPN en Linux
 
 - Ping desde el cliente VPN hacia el cliente Interno.
 ```bash
@@ -1014,7 +1011,9 @@ traceroute to 192.168.2.200 (192.168.2.200), 30 hops max, 60 byte packets
 
 ![](imagenes/Pasted%20image%2020240129005352.png)
 
-### Cliente VPN Windows
+
+### Cliente Windows
+#### Cliente VPN Windows
 En primer lugar le colocaremos una dirección IP estática con el siguiente comando:
 ```c
 netsh interface ipv4 set address name="Instancia de Ethernet 0 2" static 192.168.1.210 255.255.255.0 192.168.1.100
@@ -1037,8 +1036,9 @@ Generamos la configuración como cliente y guardamos.
 
 ![](imagenes/Pasted%20image%2020240129014743.png)
 
-### Servidor VPN
+#### Servidor VPN
 
+En la configuración del servidor VPN actualizamos e agregamos otro nuevo par colocando como clave publica la generada por WireGuard del cliente VPN de Windows, asimismo la dirección IP del túnel permitida y la del cliente.
 ```
 root@servidor-vpn-alex:/etc/wireguard# cat wg0.conf 
 [Interface]
@@ -1072,54 +1072,126 @@ root@servidor-vpn-alex:/etc/wireguard# wg-quick up /etc/wireguard/wg0.conf
 ```
 
 
-### Cliente VPN Windows
+#### Cliente VPN Windows
 De nuevo desde el Cliente VPN de Windows activaremos el túnel que hemos creado.
 
 ![](imagenes/Pasted%20image%2020240129014817.png)
 
 
 Podemos ver que también nos ha creado la interfaz del túnel.
+
 ![](imagenes/Pasted%20image%2020240129014841.png)
 
 
-### Pruebas Cliente VPN en Windows
+#### Pruebas Cliente VPN en Windows
 
 - Ping desde el cliente VPN de Windows.
+
 ![](imagenes/Pasted%20image%2020240129014921.png)
 
 
 - Tracert desde el cliente VPN de Windows.
+
 ![](imagenes/Pasted%20image%2020240129015035.png)
 
 - Captura de wireshark de paquetes ICMP que llegan al cliente interno desde la dirección IP del túnel.
+
 ![](imagenes/Pasted%20image%2020240129015214.png)
 
-
-### Cliente VPN Android
+### Cliente Android
+#### Cliente VPN Android
 
 Para nuestro cliente VPN en Android deberemos tener instalado WireGuard.
 
 ![](imagenes/Pasted%20image%2020240129171049.png)
 
-Primero de todo debemos conectarlo a la red e introducirle una dirección IP estática.
+Primero de todo debemos conectarlo a la red e introducirle una dirección IP estática y el servidor VPN como gateway.
 
 ![](imagenes/Pasted%20image%2020240129171024.png)
 
+Después desde la aplicación de WireGuard crearemos desde cero un túnel nuevo.
+
 ![](imagenes/Pasted%20image%2020240129173401.png)
 
+En la configuración del túnel, generaremos el par de claves e introduciremos la dirección del túnel con el puerto de escucha.
+
+![](imagenes/Pasted%20image%2020240130171341.png)
 
 
+Asimismo introduciremos la clave pública del servidor VPN, la dirección IP del servidor VPN etc.
 
-![](imagenes/Pasted%20image%2020240129195203.png)
+![](imagenes/Pasted%20image%2020240130171629.png)
 
-![](imagenes/Pasted%20image%2020240129195432.png)
-NO VA
+#### Servidor VPN
+
+Desde el servidor VPN modificaremos la configuración para incluir el par del servidor cliente Android, colocando su clave pública, la dirección IP del extremo del túnel y la dirección IP permitida.
+```bash
+root@debian:/etc/wireguard# cat wg0.conf 
+[Interface]
+Address = 10.99.99.1/24 # Direccion IP y mascara de la red virtual
+ListenPort = 51820 # Puerto donde WireGuard escuchará las conexiones
+PrivateKey = GIGe2xa9X6p8Xr9EwBu/COTrzMNkZLBX0DpjtCk2+Vs=
+PreUp = sysctl -w net.ipv4.ip_forward=1 # Activara el bir de forwarding
+
+# Clave publica del cliente linux
+[Peer]
+PublicKey = M0jW9c33zYn3flZItu6lClZ098GQuaYrmhveLkMrZwA=
+AllowedIPs = 10.99.99.2/32 	# Direcciones IP permitidas
+Endpoint = 192.168.1.200:51820 # Extremo del tunel
+
+#Clave publica del cliente windows
+[Peer]
+PublicKey = wnymwTrtWTYUhrzIww9q7snRuZ87zoHYAimgPqkvZGA=
+AllowedIPs = 10.99.99.3/32      # Direcciones IP permitidas
+Endpoint = 192.168.1.210:51820 # Extremo del tun
+
+# Clave publica del cliente android
+[Peer]
+PublicKey = 4czFN2RRFp/uDl2Dd0bAiDJFHbijBAmYjM1BnGbjrE8=
+AllowedIPs = 10.99.99.4/32      # Direcciones IP permitidas
+Endpoint = 192.168.1.220:51820 # Extremo del tun
+```
+
+A continuación levantaremos la interfaz.
+```bash
+root@debian:/etc/wireguard# wg-quick up /etc/wireguard/wg0.conf 
+[#] sysctl -w net.ipv4.ip_forward=1
+net.ipv4.ip_forward = 1
+[#] ip link add wg0 type wireguard
+[  699.364762] wireguard: WireGuard 1.0.0 loaded. See www.wireguard.com for information.
+[  699.367808] wireguard: Copyright (C) 2015-2019 Jason A. Donenfeld <Jason@zx2c4.com>. All Rights Reserved.
+[#] wg setconf wg0 /dev/fd/63
+[#] ip -4 address add 10.99.99.1/24 dev wg0
+[#] ip link set mtu 1420 up dev wg0
+```
+
+
+#### Cliente VPN Android
+
+Volvemos al cliente VPN de Android y finalmente activaremos el túnel.
+
+![](imagenes/Pasted%20image%2020240130172156.png)
+
+
+Si nos dirigimos a la terminal veremos que se ha creado correctamente la nueva interfaz del túnel.
+
+![](imagenes/Pasted%20image%2020240130172259.png)
+
+
+#### Pruebas Cliente VPN Android
+- Como podemos ver llega correctamente mediante el túnel al cliente interno. Realizando ping o traceroute.
+
+![](imagenes/Pasted%20image%2020240130172441.png)
+-  Capturamos el tráfico con wireshark entre el servidor VPN y el cliente interno, y mientras realizamos ping desde el cliente VPN de Android podemos ver que llegan los paquetes con la dirección IP del túnel como origen.
+
+![](imagenes/Pasted%20image%2020240130172615.png)
+
 
 ## D) VPN sitio a sitio con WireGuard
 
 Configura una VPN sitio a sitio usando WireGuard. Documenta el proceso adecuadamente y compáralo con el del apartado B.
 
-### Servidor VPN 1
+#### Servidor VPN 1
 
 Generamos el par de claves en el primer servidor.
 ```bash
@@ -1183,7 +1255,7 @@ root@servidor-vpn1-alex:/etc/wireguard# ip a
 root@servidor-vpn1-alex:/etc/wireguard# ip r
 10.99.99.2 dev wg0 scope link
 ```
-### Servidor VPN 2
+#### Servidor VPN 2
 
 En el servidor de VPN 2 seguiremos los mismos pasos, primero generamos las claves.
 ```bash
@@ -1233,7 +1305,7 @@ root@servidor-vpn2-alex:/etc/wireguard# ip r
 10.99.99.1 dev wg0 scope link
 ```
 
-### Cliente Interno 1
+#### Cliente Interno 1
 
 La ruta por defecto del cliente interno 1 es el servidor vpn 1.
 ```bash
@@ -1241,7 +1313,7 @@ debian@cliente-int1-alex:~$ ip r
 default via 192.168.1.100 dev ens4 onlink 
 ```
 
-### Cliente Interno 2
+#### Cliente Interno 2
 
 La ruta por defecto del cliente interno 2 es el servidor vpn 2.
 ```bash
@@ -1250,7 +1322,7 @@ default via 192.168.2.100 dev ens4 onlink
 ```
 
 
-### Pruebas
+#### Pruebas
 
 - Ping desde el cliente interno 1 hacia el cliente interno 2
 ```bash
