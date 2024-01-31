@@ -1375,7 +1375,7 @@ traceroute to 192.168.1.200 (192.168.1.200), 30 hops max, 60 byte packets
 ![](imagenes/Pasted%20image%2020240129210618.png)
 
 
-## Extra
+<!-- ## Extra
 
 ### NAT
 #### Router 1
@@ -1647,5 +1647,5 @@ Peer: 80.0.0.10 port 500
 ```
 
 
-### Pruebas
+### Pruebas -->
 
