@@ -1373,3 +1373,279 @@ traceroute to 192.168.1.200 (192.168.1.200), 30 hops max, 60 byte packets
 - Captura con wireshark entre los servidores VPN mientras se realiza un ping desde el cliente inerno 1 hacia el cliente interno 2, podemos ver que los paquetes viajan con WireGuard por la red que simula "Internet".
 
 ![](imagenes/Pasted%20image%2020240129210618.png)
+
+
+## Extra
+
+### NAT
+#### Router 1
+```
+R1(config)#ip access-list extended NAT
+R1(config-ext-nacl)#permit ip 192.168.1.0 0.0.0.255 any
+R1(config-ext-nacl)#do show ip access-list
+Extended IP access list NAT
+    10 permit ip 192.168.1.0 0.0.0.255 any
+
+```
+
+```
+R1(config)#interface fastEthernet 0/0
+R1(config-if)#ip nat outside # va a tardar un rato en ejecutarse
+R1(config-if)#int f0/1
+R1(config-if)#ip nat inside
+
+```
+
+```
+R1(config)#ip nat inside source list NAT interface f0/0 overload
+
+```
+
+```
+R1#sh ip nat tra
+Pro Inside global      Inside local       Outside local      Outside global
+icmp 80.0.0.10:42532   192.168.1.200:42532 80.0.0.20:42532   80.0.0.20:42532
+```
+
+```
+R1#sh ip nat tra
+Pro Inside global      Inside local       Outside local      Outside global
+icmp 80.0.0.10:42532   192.168.1.200:42532 80.0.0.20:42532   80.0.0.20:42532
+R1#show run | include overload
+ip nat inside source list NAT interface FastEthernet0/0 overload
+R1#show run int f0/0
+Building configuration...
+
+Current configuration : 133 bytes
+!
+interface FastEthernet0/0
+ ip address 80.0.0.10 255.255.255.0
+ ip nat outside
+ ip virtual-reassembly
+ duplex auto
+ speed auto
+end
+
+R1#show run int f0/1
+Building configuration...
+
+Current configuration : 136 bytes
+!
+interface FastEthernet0/1
+ ip address 192.168.1.100 255.255.255.0
+ ip nat inside
+ ip virtual-reassembly
+ duplex auto
+ speed auto
+end
+```
+#### Router 2
+```
+R2(config)#ip access-list extended NAT
+R2(config-ext-nacl)#permit ip 192.168.2.0 0.0.0.255 any
+R2(config-ext-nacl)#do show ip access-list
+Extended IP access list NAT
+    10 permit ip 192.168.2.0 0.0.0.255 any
+```
+
+```
+R2(config)#interface fastEthernet 0/0
+R2(config-if)#ip nat outside
+R2(config-if)#int f0/1
+R2(config-if)#ip nat inside
+
+R2(config)#ip nat inside source list NAT interface f0/0 overload
+
+```
+
+```
+R2#sh ip nat tra
+Pro Inside global      Inside local       Outside local      Outside global
+icmp 80.0.0.20:17696   192.168.2.200:17696 80.0.0.10:17696   80.0.0.10:1769
+```
+
+```
+R2#show run | include overload
+ip nat inside source list NAT interface FastEthernet0/0 overload
+R2#show run int f0/0
+Building configuration...
+
+Current configuration : 133 bytes
+!
+interface FastEthernet0/0
+ ip address 80.0.0.20 255.255.255.0
+ ip nat outside
+ ip virtual-reassembly
+ duplex auto
+ speed auto
+end
+
+R2#show run int f0/1
+Building configuration...
+
+Current configuration : 136 bytes
+!
+interface FastEthernet0/1
+ ip address 192.168.2.100 255.255.255.0
+ ip nat inside
+ ip virtual-reassembly
+ duplex auto
+ speed auto
+end
+
+```
+
+
+### Fase 1 IKE ISAK
+
+#### R1
+
+```
+R1(config)#crypto isakmp policy 10
+R1(config-isakmp)# encr 3des
+R1(config-isakmp)# hash md5
+R1(config-isakmp)# authentication pre-share
+R1(config-isakmp)# group 2
+R1(config-isakmp)#lifetime 86400
+
+R1(config)#crypto isakmp key 0 claver1 address 80.0.0.20 
+```
+
+#### R2
+```
+R2(config)#crypto isakmp policy 10
+R2(config-isakmp)#encryption 3des
+R2(config-isakmp)#hash md5
+R2(config-isakmp)#authentication pre-share
+R2(config-isakmp)#group 2
+R2(config-isakmp)#lifetime 86400
+
+R2(config)#do show run | section crypto
+crypto isakmp policy 10
+ encr 3des
+ hash md5
+ authentication pre-share
+ group 2
+
+R2(config)#crypto isakmp key 0 claver2 address 80.0.0.10 # el 0 es para cifrar
+
+```
+
+
+### Fase 2 IPSec
+
+#### R1
+```
+R1(config)#crypto ipsec transform-set VPN-ALEX esp-3des esp-md5-hmac 
+R1(cfg-crypto-trans)#exit
+
+```
+
+trafico interesante
+```
+R1(config)#ip access-list extended VPN
+R1(config-ext-nacl)#permit ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
+R1(config-ext-nacl)#exit
+
+
+```
+
+cripto map
+```
+R1(config)#crypto map CMAP 10 ipsec-isakmp 
+% NOTE: This new crypto map will remain disabled until a peer
+	and a valid access list have been configured.
+R1(config-crypto-map)#set peer 80.0.0.20
+R1(config-crypto-map)#match address VPN
+R1(config-crypto-map)#set transform-set VPN-ALEX
+
+R1(config)#int f0/0
+R1(config-if)#crypto map CMAP
+*Mar  1 00:30:26.911: %CRYPTO-6-ISAKMP_ON_OFF: ISAKMP is ON
+
+```
+
+```
+R1(config)#ip access-list ex NAT
+R1(config-ext-nacl)#5 deny ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
+R1(config-ext-nacl)#do show ip access-list
+Extended IP access list NAT
+    5 deny ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
+    10 permit ip 192.168.1.0 0.0.0.255 any (4 matches)
+Extended IP access list VPN
+    10 permit ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
+```
+
+
+esta down ps solo se levanta cuando hay trafico
+```
+R1#show crypto session 
+Crypto session current status
+
+Interface: FastEthernet0/0
+Session status: DOWN
+Peer: 80.0.0.20 port 500 
+  IPSEC FLOW: permit ip 192.168.1.0/255.255.255.0 192.168.2.0/255.255.255.0 
+        Active SAs: 0, origin: crypto map
+
+```
+
+#### R2
+```
+R2(config)#crypto ipsec transform-set VPN-ALEX esp-3des esp-md5-hmac 
+R2(cfg-crypto-trans)#exit
+
+```
+
+```
+R2(config)#crypto map CMAP 10 ipsec-isakmp 
+% NOTE: This new crypto map will remain disabled until a peer
+	and a valid access list have been configured.
+R2(config-crypto-map)#set peer 80.0.0.10
+R2(config-crypto-map)#match address VPN
+R2(config-crypto-map)#set transform-set VPN-ALEX
+
+```
+
+```
+R2(config)#ip access-list ex VPN
+R2(config-ext-nacl)#permit ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255
+R2(config-ext-nacl)#exit
+```
+
+```
+R2(config)#ip access-list ex NAT
+R2(config-ext-nacl)#5 deny ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255 
+
+R2(config-ext-nacl)#do show ip access-list
+Extended IP access list NAT
+    5 deny ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255
+    10 permit ip 192.168.2.0 0.0.0.255 any (1 match)
+Extended IP access list VPN
+    10 permit ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255
+
+```
+
+```
+R2(config)#int f0/0
+R2(config-if)#crypto map CMAP
+*Mar  1 01:12:23.187: %CRYPTO-6-ISAKMP_ON_OFF: ISAKMP is ON
+
+```
+
+esta down pq se levanta cuando hay trafico
+```
+R2#show crypto session 
+Crypto session current status
+
+Interface: FastEthernet0/0
+Session status: DOWN
+Peer: 80.0.0.10 port 500 
+  IPSEC FLOW: permit ip 192.168.2.0/255.255.255.0 192.168.1.0/255.255.255.0 
+        Active SAs: 0, origin: crypto map
+
+```
+
+
+### Pruebas
+
