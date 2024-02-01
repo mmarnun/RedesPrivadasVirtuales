@@ -1187,6 +1187,11 @@ Si nos dirigimos a la terminal veremos que se ha creado correctamente la nueva i
 ![](imagenes/Pasted%20image%2020240130172615.png)
 
 
+### Conclusión
+En cuanto a su arquitectura y protocolo, OpenVPN sigue un modelo cliente-servidor y utiliza SSL/TLS para seguridad. Por otro lado, WireGuard  utiliza un método de peer-to-peer con clave pública y privada, lo que hace que sea eficiente y puede rendir mejor.
+En cuánto a velocidad y eficiencia, WireGuard destaca, gracias a su modo de configuración pues en comparación con OpenVPN que puede ser mas complejo pues tiene muchas opciones de configuración.
+Tanto OpenVPN como WireGuard tienen soluciones válidas para conexiones VPN con acceso remoto, cada una con sus propias ventajas. 
+
 ## D) VPN sitio a sitio con WireGuard
 
 Configura una VPN sitio a sitio usando WireGuard. Documenta el proceso adecuadamente y compáralo con el del apartado B.
@@ -1374,8 +1379,13 @@ traceroute to 192.168.1.200 (192.168.1.200), 30 hops max, 60 byte packets
 
 ![](imagenes/Pasted%20image%2020240129210618.png)
 
+### Conclusión
+En resumen, OpenVPN y WireGuard son dos programas de VPN con arquitectura y protocolos diferentes. Mientras que OpenVPN sigue un modelo cliente-servidor y utiliza SSL/TLS para seguridad, WireGuard emplea un método peer-to-peer con claves pública y privada, lo que mejora su eficiencia y rendimiento. Para la configuración, WireGuard se destaca por su simplicidad y eficiencia, en contraste con OpenVPN, que puede ser más complejo debido a sus varias opciones de configuración. Ambos ofrecen soluciones válidas para conexiones VPN con acceso remoto, cada una con sus propias ventajas y condiciones específicas.
 
-<!-- ## Extra
+
+
+## Extra
+(No he conseguido sacarlo)
 
 ### NAT
 #### Router 1
@@ -1538,19 +1548,14 @@ R2(config)#crypto isakmp key 0 claver2 address 80.0.0.10 # el 0 es para cifrar
 ```
 R1(config)#crypto ipsec transform-set VPN-ALEX esp-3des esp-md5-hmac 
 R1(cfg-crypto-trans)#exit
-
 ```
 
-trafico interesante
 ```
 R1(config)#ip access-list extended VPN
 R1(config-ext-nacl)#permit ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
 R1(config-ext-nacl)#exit
-
-
 ```
 
-cripto map
 ```
 R1(config)#crypto map CMAP 10 ipsec-isakmp 
 % NOTE: This new crypto map will remain disabled until a peer
@@ -1562,7 +1567,6 @@ R1(config-crypto-map)#set transform-set VPN-ALEX
 R1(config)#int f0/0
 R1(config-if)#crypto map CMAP
 *Mar  1 00:30:26.911: %CRYPTO-6-ISAKMP_ON_OFF: ISAKMP is ON
-
 ```
 
 ```
@@ -1576,8 +1580,7 @@ Extended IP access list VPN
     10 permit ip 192.168.1.0 0.0.0.255 192.168.2.0 0.0.0.255
 ```
 
-
-esta down ps solo se levanta cuando hay trafico
+Está down porque solo se levanta cuando entra tráfico interesante
 ```
 R1#show crypto session 
 Crypto session current status
@@ -1587,14 +1590,12 @@ Session status: DOWN
 Peer: 80.0.0.20 port 500 
   IPSEC FLOW: permit ip 192.168.1.0/255.255.255.0 192.168.2.0/255.255.255.0 
         Active SAs: 0, origin: crypto map
-
 ```
 
 #### R2
 ```
 R2(config)#crypto ipsec transform-set VPN-ALEX esp-3des esp-md5-hmac 
 R2(cfg-crypto-trans)#exit
-
 ```
 
 ```
@@ -1604,7 +1605,6 @@ R2(config)#crypto map CMAP 10 ipsec-isakmp
 R2(config-crypto-map)#set peer 80.0.0.10
 R2(config-crypto-map)#match address VPN
 R2(config-crypto-map)#set transform-set VPN-ALEX
-
 ```
 
 ```
@@ -1623,17 +1623,15 @@ Extended IP access list NAT
     10 permit ip 192.168.2.0 0.0.0.255 any (1 match)
 Extended IP access list VPN
     10 permit ip 192.168.2.0 0.0.0.255 192.168.1.0 0.0.0.255
-
 ```
 
 ```
 R2(config)#int f0/0
 R2(config-if)#crypto map CMAP
 *Mar  1 01:12:23.187: %CRYPTO-6-ISAKMP_ON_OFF: ISAKMP is ON
-
 ```
 
-esta down pq se levanta cuando hay trafico
+Está down porque solo se levanta cuando entra tráfico interesante
 ```
 R2#show crypto session 
 Crypto session current status
@@ -1643,9 +1641,8 @@ Session status: DOWN
 Peer: 80.0.0.10 port 500 
   IPSEC FLOW: permit ip 192.168.2.0/255.255.255.0 192.168.1.0/255.255.255.0 
         Active SAs: 0, origin: crypto map
-
 ```
 
 
-### Pruebas -->
+### Pruebas
 
