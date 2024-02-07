@@ -14,6 +14,8 @@
 Documenta el proceso detalladamente.
 ```
 
+![](imagenes/vpna.png)
+
 #### Servidor VPN
 Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
 ```bash
@@ -416,7 +418,7 @@ Configura una conexión VPN sitio a sitio entre dos equipos del cloud:
 Documenta el proceso detalladamente.
 ```
 
-
+![](imagenes/vpnb.png)
 #### Servidor VPN 2
 Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
 ```bash
@@ -792,6 +794,7 @@ traceroute to 192.168.1.100 (192.168.1.100), 30 hops max, 60 byte packets
 
 Monta una VPN de acceso remoto usando Wireguard. Intenta probarla con clientes Windows, Linux y Android. Documenta el proceso adecuadamente y compáralo con el del apartado A.
 
+![](imagenes/vpnc.png)
 ### Cliente Linux
 #### Servidor VPN
 Antes de empezar por supuesto debemos tener instalado OpenVPN podremos con:
@@ -1196,6 +1199,7 @@ Tanto OpenVPN como WireGuard tienen soluciones válidas para conexiones VPN con 
 
 Configura una VPN sitio a sitio usando WireGuard. Documenta el proceso adecuadamente y compáralo con el del apartado B.
 
+![](imagenes/vpnd.png)
 #### Servidor VPN 1
 
 Generamos el par de claves en el primer servidor.
